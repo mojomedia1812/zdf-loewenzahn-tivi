@@ -294,13 +294,10 @@ def episode_image(video):
 
 def format_episode_label(video):
     info = video.get("episodeInfo") or {}
-    season_number = _as_int(info.get("seasonNumber"))
     episode_number = _as_int(info.get("episodeNumber"))
     title = episode_title(video)
-    if season_number and episode_number:
-        return "S{0:02d}E{1:02d} - {2}".format(season_number, episode_number, title)
     if episode_number:
-        return "E{0:02d} - {1}".format(episode_number, title)
+        return "Folge {0:02d} - {1}".format(episode_number, title)
     return title
 
 

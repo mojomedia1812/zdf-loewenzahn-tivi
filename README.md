@@ -6,7 +6,7 @@ Kodi-Addon fuer ZDFtivi-Löwenzahn.
 
 - Hauptmenue mit Fritz Fuchs, Peter Lustig und Löwenzähnchen mit Keks
 - Staffeln aus der ZDFtivi-API
-- Folgenliste nach Folgennummer mit Beschreibung, Laufzeit und Vorschaubild
+- Folgenliste nach Folgennummer mit nummerierter Anzeige, Beschreibung, Laufzeit und Vorschaubild
 - Wiedergabe ueber ZDF-PTMD/HLS-Streams
 - WebVTT-Untertitel, wenn von ZDF angeboten
 - Startpruefung auf neuere GitHub-Releases mit Installationsangebot

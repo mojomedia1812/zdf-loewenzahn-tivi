@@ -47,9 +47,10 @@ def _notify_error(message):
     xbmcgui.Dialog().notification(ADDON_NAME, message, xbmcgui.NOTIFICATION_ERROR, 8000)
 
 
-def _set_content(content):
+def _set_content(content, sort_method=None):
     xbmcplugin.setContent(HANDLE, content)
-    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_LABEL)
+    if sort_method is not None:
+        xbmcplugin.addSortMethod(HANDLE, sort_method)
 
 
 def add_directory(label, params, image_url=None, info=None):
@@ -66,13 +67,16 @@ def add_episode(video):
         return
     info = video.get("episodeInfo") or {}
     title = episode_title(video)
-    item = xbmcgui.ListItem(label=format_episode_label(video))
+    display_title = format_episode_label(video)
+    item = xbmcgui.ListItem(label=display_title)
     item.setProperty("IsPlayable", "true")
     item.setArt(_art(episode_image(video)))
     item.setInfo(
         "video",
         {
-            "title": title,
+            "title": display_title,
+            "sorttitle": display_title,
+            "originaltitle": title,
             "plot": episode_plot(video),
             "season": info.get("seasonNumber") or 0,
             "episode": info.get("episodeNumber") or 0,
@@ -97,7 +101,7 @@ def add_episode(video):
 
 
 def list_root(api):
-    _set_content("tvshows")
+    _set_content("tvshows", xbmcplugin.SORT_METHOD_LABEL)
     for series in api.get_series():
         suffix = []
         if series.get("countSeasons"):
@@ -117,7 +121,7 @@ def list_root(api):
 
 
 def list_seasons(api, params):
-    _set_content("seasons")
+    _set_content("seasons", xbmcplugin.SORT_METHOD_UNSORTED)
     canonical = params["canonical"]
     series_label = params.get("label") or "Löwenzahn"
     for season in api.get_seasons(canonical):
@@ -145,7 +149,7 @@ def list_seasons(api, params):
 
 
 def list_episodes(api, params):
-    _set_content("episodes")
+    _set_content("episodes", xbmcplugin.SORT_METHOD_UNSORTED)
     episodes = api.get_episodes(params["canonical"], params["season_id"])
     for video in episodes:
         add_episode(video)

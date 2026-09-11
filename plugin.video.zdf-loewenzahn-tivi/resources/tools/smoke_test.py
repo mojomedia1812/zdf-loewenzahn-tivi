@@ -15,6 +15,16 @@ from zdf_api import (  # noqa: E402
 )
 
 
+def assert_episode_order(name, episodes):
+    episode_numbers = [
+        (episode.get("episodeInfo") or {}).get("episodeNumber")
+        for episode in episodes
+        if (episode.get("episodeInfo") or {}).get("episodeNumber")
+    ]
+    if episode_numbers != sorted(episode_numbers):
+        raise SystemExit("{0}: Folgen sind nicht nach Folgennummer sortiert".format(name))
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-stream", action="store_true", help="skip PTMD stream resolution")
@@ -36,18 +46,28 @@ def main():
         )
         if item["key"] == "fritz" and seasons:
             episodes = api.get_episodes(item["canonical"], seasons[0]["id"])
-            episode_numbers = [
-                (episode.get("episodeInfo") or {}).get("episodeNumber")
-                for episode in episodes
-                if (episode.get("episodeInfo") or {}).get("episodeNumber")
-            ]
-            if episode_numbers != sorted(episode_numbers):
-                raise SystemExit("Folgen sind nicht nach Folgennummer sortiert")
+            assert_episode_order("Fritz", episodes)
             print("Fritz Staffel {0}: {1} Folgen".format(seasons[0].get("number"), len(episodes)))
             print("Folgensortierung:", "OK")
             if episodes:
                 first_episode = episodes[0]
                 print("Erste Folge:", format_episode_label(first_episode))
+
+        if item["key"] == "peter":
+            season_one = next((season for season in seasons if season.get("number") == 1), None)
+            if not season_one:
+                raise SystemExit("Peter Lustig Staffel 1 nicht gefunden")
+            peter_episodes = api.get_episodes(item["canonical"], season_one["id"])
+            assert_episode_order("Peter Lustig Staffel 1", peter_episodes)
+            if not peter_episodes:
+                raise SystemExit("Peter Lustig Staffel 1 enthaelt keine Folgen")
+            peter_first = peter_episodes[0]
+            peter_label = format_episode_label(peter_first)
+            if episode_title(peter_first) != "Umzug":
+                raise SystemExit("Peter Lustig Staffel 1: erste Folge ist nicht Umzug")
+            if not peter_label.startswith("Folge 01 - "):
+                raise SystemExit("Peter Lustig Staffel 1: Folgenbezeichnung enthaelt keine Folgennummer")
+            print("Peter Staffel 1: {0} an Position 1".format(peter_label))
 
     if args.no_stream or not first_episode:
         return 0
