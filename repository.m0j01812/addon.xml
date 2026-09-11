@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="repository.m0j01812" name="m0j01812 Kodi Repository" version="2026.09.11.5" provider-name="m0j01812">
+    <extension point="xbmc.addon.repository" name="m0j01812 Kodi Repository">
+        <dir>
+            <info compressed="false">https://raw.githubusercontent.com/mojomedia1812/zdf-loewenzahn-tivi/main/repository/addons.xml</info>
+            <checksum>https://raw.githubusercontent.com/mojomedia1812/zdf-loewenzahn-tivi/main/repository/addons.xml.md5</checksum>
+            <datadir zip="true">https://raw.githubusercontent.com/mojomedia1812/zdf-loewenzahn-tivi/main/repository/</datadir>
+            <hashes>false</hashes>
+        </dir>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary lang="de_DE">Kodi-Repository von m0j01812.</summary>
+        <summary lang="en_GB">m0j01812 Kodi repository.</summary>
+        <description lang="de_DE">Stellt Updates für zdf-loewenzahn-tivi über Kodi-kompatible Repository-Metadaten bereit.</description>
+        <description lang="en_GB">Provides updates for zdf-loewenzahn-tivi through Kodi-compatible repository metadata.</description>
+        <platform>all</platform>
+        <license>MIT</license>
+        <source>https://github.com/mojomedia1812/zdf-loewenzahn-tivi</source>
+        <assets>
+            <icon>icon.png</icon>
+            <fanart>fanart.jpg</fanart>
+        </assets>
+    </extension>
+</addon>

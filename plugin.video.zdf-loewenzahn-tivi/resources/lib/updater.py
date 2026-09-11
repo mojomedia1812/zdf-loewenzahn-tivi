@@ -5,13 +5,14 @@ import re
 import time
 import urllib.error
 import urllib.request
+import zipfile
+import xml.etree.ElementTree as ET
 
 
 ADDON_ID = "plugin.video.zdf-loewenzahn-tivi"
 GITHUB_LATEST_RELEASE_URL = (
     "https://api.github.com/repos/mojomedia1812/zdf-loewenzahn-tivi/releases/latest"
 )
-CHECK_INTERVAL_SECONDS = 6 * 60 * 60
 USER_AGENT = "zdf-loewenzahn-tivi-update-check"
 
 
@@ -103,14 +104,22 @@ def _save_state(xbmcvfs, state):
         json.dump(state, handle, sort_keys=True)
 
 
-def should_check_now(xbmcvfs, now=None, interval=CHECK_INTERVAL_SECONDS):
-    now = now or time.time()
-    state = _load_state(xbmcvfs)
-    return now - float(state.get("last_checked") or 0) >= interval
-
-
 def _record_check(xbmcvfs, now=None):
-    _save_state(xbmcvfs, {"last_checked": now or time.time()})
+    state = _load_state(xbmcvfs)
+    state["last_checked"] = now or time.time()
+    _save_state(xbmcvfs, state)
+
+
+def _record_dismissed(xbmcvfs, version, now=None):
+    state = _load_state(xbmcvfs)
+    state["dismissed_version"] = version
+    state["dismissed_at"] = now or time.time()
+    _save_state(xbmcvfs, state)
+
+
+def should_prompt_for_update(xbmcvfs, update_info):
+    state = _load_state(xbmcvfs)
+    return state.get("dismissed_version") != update_info.get("version")
 
 
 def _download_file(url, target_path, timeout=30):
@@ -132,7 +141,7 @@ def download_update_zip(update_info, xbmcvfs):
         ADDON_ID,
         update_info["version"],
     )
-    target_directory = _translate_path(xbmcvfs, "special://temp")
+    target_directory = _translate_path(xbmcvfs, "special://home/addons/packages")
     if not os.path.isdir(target_directory):
         os.makedirs(target_directory, exist_ok=True)
     target_path = os.path.join(target_directory, filename)
@@ -140,10 +149,92 @@ def download_update_zip(update_info, xbmcvfs):
     return target_path
 
 
-def maybe_offer_update(addon, xbmc, xbmcgui, xbmcvfs, force=False):
-    if not force and not should_check_now(xbmcvfs):
-        return None
+def _is_safe_zip_member(name):
+    normalized = name.replace("\\", "/").strip("/")
+    if normalized.startswith("/") or re.match(r"^[A-Za-z]:", normalized):
+        return False
+    return all(part not in ("", ".", "..") for part in normalized.split("/"))
 
+
+def validate_update_zip(zip_path, expected_version):
+    try:
+        archive = zipfile.ZipFile(zip_path)
+    except zipfile.BadZipFile as exc:
+        raise UpdateError("Update-ZIP ist beschädigt: {0}".format(exc))
+
+    with archive:
+        names = archive.namelist()
+        addon_xml_name = "{0}/addon.xml".format(ADDON_ID)
+        if addon_xml_name not in names:
+            raise UpdateError("Update-ZIP enthält kein gültiges addon.xml")
+
+        for name in names:
+            if not _is_safe_zip_member(name):
+                raise UpdateError("Update-ZIP enthält einen unsicheren Dateipfad: {0}".format(name))
+            if not name.startswith("{0}/".format(ADDON_ID)):
+                raise UpdateError("Update-ZIP enthält unerwartete Dateien: {0}".format(name))
+
+        try:
+            addon_xml = ET.fromstring(archive.read(addon_xml_name))
+        except ET.ParseError as exc:
+            raise UpdateError("Update-ZIP enthält ein ungültiges addon.xml: {0}".format(exc))
+
+        addon_id = addon_xml.get("id")
+        version = addon_xml.get("version")
+        if addon_id != ADDON_ID:
+            raise UpdateError("Update-ZIP gehört zu einem anderen Addon: {0}".format(addon_id))
+        if version != expected_version:
+            raise UpdateError(
+                "Update-ZIP-Version passt nicht zum GitHub-Release: {0} statt {1}".format(
+                    version,
+                    expected_version,
+                )
+            )
+
+    return True
+
+
+def _extract_update_zip(zip_path, xbmcvfs):
+    target_directory = _translate_path(xbmcvfs, "special://home/addons")
+    if not os.path.isdir(target_directory):
+        os.makedirs(target_directory, exist_ok=True)
+
+    with zipfile.ZipFile(zip_path) as archive:
+        for member in archive.infolist():
+            if member.is_dir():
+                continue
+            if not _is_safe_zip_member(member.filename):
+                raise UpdateError("Update-ZIP enthält einen unsicheren Dateipfad: {0}".format(member.filename))
+
+            target_path = os.path.abspath(
+                os.path.join(target_directory, *member.filename.replace("\\", "/").split("/"))
+            )
+            target_root = os.path.normcase(os.path.abspath(target_directory) + os.sep)
+            if not os.path.normcase(target_path).startswith(target_root):
+                raise UpdateError("Update-ZIP würde außerhalb des Addon-Verzeichnisses schreiben")
+
+            parent = os.path.dirname(target_path)
+            if not os.path.isdir(parent):
+                os.makedirs(parent, exist_ok=True)
+            with archive.open(member) as source, open(target_path, "wb") as target:
+                while True:
+                    chunk = source.read(1024 * 128)
+                    if not chunk:
+                        break
+                    target.write(chunk)
+
+
+def install_update(update_info, xbmcvfs, xbmc):
+    zip_path = download_update_zip(update_info, xbmcvfs)
+    validate_update_zip(zip_path, update_info["version"])
+    _extract_update_zip(zip_path, xbmcvfs)
+    xbmc.executebuiltin("UpdateLocalAddons", True)
+    xbmc.executebuiltin("UpdateAddonRepos", True)
+    xbmc.executebuiltin("Container.Refresh")
+    return zip_path
+
+
+def maybe_offer_update(addon, xbmc, xbmcgui, xbmcvfs, force=False):
     current_version = addon.getAddonInfo("version")
     try:
         update_info = check_for_update(current_version)
@@ -160,24 +251,37 @@ def maybe_offer_update(addon, xbmc, xbmcgui, xbmcvfs, force=False):
         )
         return None
 
+    if not force and not should_prompt_for_update(xbmcvfs, update_info):
+        xbmc.log(
+            "{0}: GitHub update {1} was dismissed before".format(
+                ADDON_ID,
+                update_info["version"],
+            ),
+            xbmc.LOGDEBUG,
+        )
+        return update_info
+
     message = (
         "Installiert: {0}\n"
         "Verfügbar: {1}\n\n"
-        "Update-ZIP herunterladen und den Kodi-Installationsdialog öffnen?"
+        "Update-ZIP herunterladen, prüfen und installieren?"
     ).format(current_version, update_info["version"])
     dialog = xbmcgui.Dialog()
     if not dialog.yesno("Update verfügbar", message):
+        _record_dismissed(xbmcvfs, update_info["version"])
         return update_info
 
     try:
-        zip_path = download_update_zip(update_info, xbmcvfs)
+        zip_path = install_update(update_info, xbmcvfs, xbmc)
     except UpdateError as exc:
         dialog.notification(ADDON_ID, str(exc), xbmcgui.NOTIFICATION_ERROR, 8000)
         return update_info
 
     dialog.ok(
-        "Update heruntergeladen",
-        "Kodi öffnet jetzt die ZIP-Installation.\n\nDatei: {0}".format(zip_path),
+        "Update installiert",
+        "Version {0} wurde installiert.\n\nFalls Kodi noch die alte Version zeigt, Kodi neu starten.\n\nDatei: {1}".format(
+            update_info["version"],
+            zip_path,
+        ),
     )
-    xbmc.executebuiltin('InstallFromZip("{0}")'.format(zip_path.replace("\\", "/")))
     return update_info

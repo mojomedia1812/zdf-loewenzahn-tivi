@@ -1,0 +1,4 @@
+2026.09.11.5
+- Update-Prüfung läuft bei jedem Addon-Start.
+- Update-ZIP wird validiert und direkt installiert.
+- Kodi-Repository-Metadaten ergänzt.

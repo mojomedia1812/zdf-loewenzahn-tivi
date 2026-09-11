@@ -11,12 +11,15 @@ Entwickler: m0j01812
 - Folgenliste nach Folgennummer mit nummerierter Anzeige, Beschreibung, Laufzeit und Vorschaubild
 - Wiedergabe ueber ZDF-PTMD/HLS-Streams
 - WebVTT-Untertitel, wenn von ZDF angeboten
-- Startpruefung auf neuere GitHub-Releases mit Installationsangebot
+- Startpruefung auf neuere GitHub-Releases mit direkter ZIP-Installation nach Bestaetigung
+- Kodi-Repository-Metadaten fuer automatische Kodi-Updates
 
 ## Installation
 
-In Kodi die ZIP-Datei aus dem GitHub-Release installieren oder den Ordner
-`plugin.video.zdf-loewenzahn-tivi` in das Kodi-Addon-Verzeichnis kopieren.
+In Kodi die ZIP-Datei aus dem GitHub-Release installieren oder das Repository
+`repository.m0j01812` einrichten. Danach kann Kodi Updates ueber die
+Repository-Metadaten finden; zusaetzlich prueft das Addon beim Start auf neue
+GitHub-Releases.
 
 ## Entwicklungstest
 
