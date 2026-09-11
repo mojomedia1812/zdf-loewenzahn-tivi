@@ -25,6 +25,16 @@ def assert_episode_order(name, episodes):
         raise SystemExit("{0}: Folgen sind nicht nach Folgennummer sortiert".format(name))
 
 
+def assert_season_order(name, seasons):
+    season_numbers = [
+        season.get("number")
+        for season in seasons
+        if season.get("number")
+    ]
+    if season_numbers != sorted(season_numbers):
+        raise SystemExit("{0}: Staffeln sind nicht aufsteigend sortiert".format(name))
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-stream", action="store_true", help="skip PTMD stream resolution")
@@ -37,8 +47,9 @@ def main():
     first_episode = None
     for item in series:
         seasons = api.get_seasons(item["canonical"])
+        assert_season_order(item["label"], seasons)
         print(
-            "{0}: {1} Staffeln, erste API-Staffel: {2}".format(
+            "{0}: {1} Staffeln, erste Staffel: {2}".format(
                 item["label"],
                 len(seasons),
                 seasons[0].get("number") if seasons else "-",

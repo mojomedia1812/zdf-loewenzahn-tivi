@@ -250,7 +250,10 @@ def _as_int(value, default=0):
 
 
 def _sort_seasons(seasons):
-    return sorted(seasons, key=lambda item: _as_int(item.get("number")), reverse=True)
+    return sorted(
+        seasons,
+        key=lambda item: (_as_int(item.get("number"), 9999), item.get("title") or ""),
+    )
 
 
 def _episode_sort_key(video):
