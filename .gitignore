@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.zip
+.DS_Store
+Thumbs.db
+plugin.video.zdf-loewenzahn-tivi/resources/artwork/
