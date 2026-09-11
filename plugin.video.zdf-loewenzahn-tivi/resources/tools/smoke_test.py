@@ -36,7 +36,15 @@ def main():
         )
         if item["key"] == "fritz" and seasons:
             episodes = api.get_episodes(item["canonical"], seasons[0]["id"])
+            episode_numbers = [
+                (episode.get("episodeInfo") or {}).get("episodeNumber")
+                for episode in episodes
+                if (episode.get("episodeInfo") or {}).get("episodeNumber")
+            ]
+            if episode_numbers != sorted(episode_numbers):
+                raise SystemExit("Folgen sind nicht nach Folgennummer sortiert")
             print("Fritz Staffel {0}: {1} Folgen".format(seasons[0].get("number"), len(episodes)))
+            print("Folgensortierung:", "OK")
             if episodes:
                 first_episode = episodes[0]
                 print("Erste Folge:", format_episode_label(first_episode))

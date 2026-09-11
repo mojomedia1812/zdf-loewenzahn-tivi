@@ -6,3 +6,4 @@ __pycache__/
 .DS_Store
 Thumbs.db
 plugin.video.zdf-loewenzahn-tivi/resources/artwork/
+plugin.video.zdf-tivi/

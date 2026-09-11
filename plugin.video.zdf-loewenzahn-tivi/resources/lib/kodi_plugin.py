@@ -7,7 +7,9 @@ import xbmc
 import xbmcaddon
 import xbmcgui
 import xbmcplugin
+import xbmcvfs
 
+from updater import maybe_offer_update
 from zdf_api import (
     ZdfError,
     ZdfSession,
@@ -184,6 +186,7 @@ def run():
         elif mode == "play":
             play(api, params)
         else:
+            maybe_offer_update(ADDON, xbmc, xbmcgui, xbmcvfs)
             list_root(api)
     except ZdfError as exc:
         _notify_error(str(exc))

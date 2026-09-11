@@ -253,6 +253,16 @@ def _sort_seasons(seasons):
     return sorted(seasons, key=lambda item: _as_int(item.get("number")), reverse=True)
 
 
+def _episode_sort_key(video):
+    info = video.get("episodeInfo") or {}
+    episode_number = _as_int(info.get("episodeNumber"), 9999)
+    return (episode_number, episode_title(video).lower(), video.get("id") or "")
+
+
+def sort_episodes(episodes):
+    return sorted(episodes, key=_episode_sort_key)
+
+
 def pick_vod_media(video):
     nodes = ((video.get("currentMedia") or {}).get("nodes") or [])
     vods = [
@@ -446,15 +456,15 @@ class ZdfSession:
             collection = data.get("smartCollectionByCanonical") or {}
             season_nodes = (((collection.get("seasons") or {}).get("nodes")) or [])
             if not season_nodes:
-                return episodes
+                return sort_episodes(episodes)
             edge = (season_nodes[0].get("episodes") or {})
             episodes.extend(edge.get("nodes") or [])
             page_info = edge.get("pageInfo") or {}
             if not page_info.get("hasNextPage"):
-                return episodes
+                return sort_episodes(episodes)
             after = page_info.get("endCursor")
             if not after:
-                return episodes
+                return sort_episodes(episodes)
 
     def resolve_ptmd_template(self, ptmd_template):
         if not ptmd_template:
